@@ -1,0 +1,16 @@
+{
+  "ManifestVersion": "1.0.0",
+  "Id": "TheGreatCombinator",
+  "Version": "0.1.0",
+  "Name": "The Great Combinator",
+  "Author": "PhysShell",
+  "Description": "The Great Combinator: Combine files → clipboard/temp via Rust CLI",
+  "MoreInfoUrl": "",
+  "License": "",
+  "Icon": "",
+  "Installation": {
+    "InstallationTarget": [
+      { "Id": "Microsoft.VisualStudio.Community", "Version": "[17.0,18.0)" }
+    ]
+  }
+}

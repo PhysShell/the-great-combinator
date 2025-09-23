@@ -1,0 +1,52 @@
+{
+  "name": "the-great-combinator",
+  "displayName": "The Great Combinator (Clipboard / Temp)",
+  "version": "0.1.0",
+  "publisher": "PhysShell",
+  "engines": { "vscode": "^1.92.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "tgc.copy", "title": "The Great Combinator → Copy" },
+      { "command": "tgc.temp", "title": "The Great Combinator → Temp File" },
+      { "command": "tgc.debug", "title": "🔧 The Great Combinator: Debug CLI" }
+    ],
+    "menus": {
+      "explorer/context": [
+        { "command": "tgc.copy", "group": "navigation" },
+        { "command": "tgc.temp", "group": "navigation" }
+      ]
+    },
+    "configuration": {
+      "title": "The Great Combinator",
+      "properties": {
+        "tgc.coreBinPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to the Rust CLI binary. Supports ${workspaceFolder} and ~. If empty, the extension will try to auto-detect."
+        },
+        "tgc.headerFormat": { "type": "string", "default": "File ${index}: ${relpath}" },
+        "tgc.separator": { "type": "string", "default": "\\n\\n" },
+        "tgc.maxFileSizeKB": { "type": "number", "default": 1024 },
+        "tgc.skipBinary": { "type": "boolean", "default": true },
+        "tgc.onTempOpen": { "type": "string", "enum": ["openAndReveal","openOnly","revealOnly","copyPath","copyAsFile","none"], "default": "copyAsFile", "enumDescriptions": ["Open file and show in file manager", "Open file only", "Show in file manager only", "Copy file path to clipboard", "Copy file as attachment (like Ctrl+C in file manager)", "Do nothing"] }
+      }
+    },
+    "keybindings": [
+      { "command": "tgc.copy", "key": "ctrl+alt+shift+c", "mac": "cmd+alt+shift+c", "when": "explorerViewletVisible && filesExplorerFocus" },
+      { "command": "tgc.temp", "key": "ctrl+alt+shift+f", "mac": "cmd+alt+shift+f", "when": "explorerViewletVisible && filesExplorerFocus" }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vscode": "^1.1.45",
+    "@types/node": "^20.14.11"
+  }
+}

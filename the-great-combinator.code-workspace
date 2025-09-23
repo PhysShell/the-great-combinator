@@ -1,0 +1,25 @@
+{
+    "folders": [
+        {
+            "name": "🔧 Extension Dev",
+            "path": "./vscode-ext/.dev-workspace"
+        },
+        {
+            "name": "📁 Project Root",
+            "path": "./"
+        }
+    ],
+    "settings": {
+        "combine.headerFormat": "file ${index}: ${relpath}",
+        "combine.separator": "\\n---\\n",
+        "combine.maxFileSizeKB": 1024,
+        "combine.skipBinary": true,
+        "combine.onTempOpen": "openAndReveal"
+    },
+    "extensions": {
+        "recommendations": [
+            "rust-lang.rust-analyzer",
+            "ms-vscode.vscode-typescript-next"
+        ]
+    }
+}
