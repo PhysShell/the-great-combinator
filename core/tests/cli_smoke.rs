@@ -4,7 +4,9 @@ use tempfile::tempdir;
 use std::fs;
 
 fn run_cli(json: &str, args: &[&str]) -> (i32, String, String) {
-    let mut cmd = Command::cargo_bin("combine-to-temp").unwrap();
+    // Use the crate package name so tests work even if binary file name differs
+    let pkg = env!("CARGO_PKG_NAME");
+    let mut cmd = Command::cargo_bin(pkg).unwrap();
     cmd.args(args);
     cmd.stdin(std::process::Stdio::piped());
     cmd.stdout(std::process::Stdio::piped());
