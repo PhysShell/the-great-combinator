@@ -40,10 +40,21 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Rust clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: |
+          # If RUST_WORKSPACE_MEMBER is a path, run clippy via manifest-path
+          if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
+            cargo clippy --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --all-targets -- -D warnings
+          else
+            cargo clippy --workspace --all-targets -- -D warnings
+          fi
 
       - name: Rust tests
-        run: cargo test --workspace --all-features
+        run: |
+          if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
+            cargo test --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --all-features
+          else
+            cargo test --workspace --all-features
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -115,9 +126,15 @@ jobs:
       - name: Build Rust backend (process)
         if: env.BACKEND_MODE == 'process'
         run: |
-          cargo build -p $RUST_WORKSPACE_MEMBER --release --target $TARGET_TRIPLE
+          if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
+            cargo build --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target $TARGET_TRIPLE
+            BUILD_BIN="$PWD/$RUST_WORKSPACE_MEMBER/target/$TARGET_TRIPLE/release/${APP_NAME}"
+          else
+            cargo build -p $RUST_WORKSPACE_MEMBER --release --target $TARGET_TRIPLE
+            BUILD_BIN="$PWD/target/$TARGET_TRIPLE/release/${APP_NAME}"
+          fi
           mkdir -p dist/bin/${{ runner.os }}-${{ matrix.arch }}
-          BIN="$PWD/target/$TARGET_TRIPLE/release/${APP_NAME}"
+          BIN="$BUILD_BIN"
           if [ "${{ runner.os }}" = "Windows" ]; then BIN="${BIN}.exe"; fi
           cp "$BIN" "dist/bin/${{ runner.os }}-${{ matrix.arch }}/"
 
@@ -135,9 +152,13 @@ jobs:
         if: env.BACKEND_MODE == 'web'
         run: |
           rustup target add wasm32-wasi || true
-          cargo build -p $RUST_WORKSPACE_MEMBER --release --target wasm32-wasi
-          mkdir -p dist/web
-          cp target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
+          if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
+            cargo build --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target wasm32-wasi
+            cp $RUST_WORKSPACE_MEMBER/target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
+          else
+            cargo build -p $RUST_WORKSPACE_MEMBER --release --target wasm32-wasi
+            cp target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
+          fi
 
       - name: Build extension bundle
         working-directory: vscode-ext

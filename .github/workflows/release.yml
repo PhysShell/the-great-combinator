@@ -56,9 +56,15 @@ jobs:
       - name: Build Rust backend (process)
         if: env.BACKEND_MODE == 'process'
         run: |
-          cargo build -p $RUST_WORKSPACE_MEMBER --release --target $TARGET_TRIPLE
+          if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
+            cargo build --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target $TARGET_TRIPLE
+            BUILD_BIN="$PWD/$RUST_WORKSPACE_MEMBER/target/$TARGET_TRIPLE/release/${APP_NAME}"
+          else
+            cargo build -p $RUST_WORKSPACE_MEMBER --release --target $TARGET_TRIPLE
+            BUILD_BIN="$PWD/target/$TARGET_TRIPLE/release/${APP_NAME}"
+          fi
           mkdir -p dist/bin/${{ runner.os }}-${{ matrix.arch }}
-          BIN="$PWD/target/$TARGET_TRIPLE/release/${APP_NAME}"
+          BIN="$BUILD_BIN"
           if [ "${{ runner.os }}" = "Windows" ]; then BIN="${BIN}.exe"; fi
           cp "$BIN" "dist/bin/${{ runner.os }}-${{ matrix.arch }}/"
 
@@ -75,9 +81,13 @@ jobs:
         if: env.BACKEND_MODE == 'web'
         run: |
           rustup target add wasm32-wasi || true
-          cargo build -p $RUST_WORKSPACE_MEMBER --release --target wasm32-wasi
-          mkdir -p dist/web
-          cp target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
+          if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
+            cargo build --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target wasm32-wasi
+            cp $RUST_WORKSPACE_MEMBER/target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
+          else
+            cargo build -p $RUST_WORKSPACE_MEMBER --release --target wasm32-wasi
+            cp target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
+          fi
 
       - name: Bundle extension
         working-directory: vscode-ext
