@@ -39,6 +39,16 @@ jobs:
       - name: Cache Cargo (rust-cache)
         uses: Swatinem/rust-cache@v2
 
+      - name: Install cross toolchain for aarch64 (Ubuntu)
+        if: contains(env.TARGET_TRIPLE, 'aarch64-unknown-linux-gnu') && matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Installing cross toolchain for aarch64"
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross
+          echo "Setting cargo linker env vars"
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
       - name: Rust clippy
         run: |
           # If RUST_WORKSPACE_MEMBER is a path, run clippy via manifest-path
