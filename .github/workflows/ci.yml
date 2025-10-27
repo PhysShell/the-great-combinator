@@ -52,7 +52,14 @@ jobs:
 
       - name: Install JS deps
         working-directory: vscode-ext
-        run: npm ci
+        run: |
+          # Prefer deterministic install when lockfile exists
+          if [ -f package-lock.json ] ; then
+            npm ci
+          else
+            echo "package-lock.json not found in vscode-ext, running 'npm install' as fallback"
+            npm install
+          fi
 
       - name: JS/TS build (dry)
         working-directory: vscode-ext
@@ -88,7 +95,14 @@ jobs:
 
       - name: Install JS deps
         working-directory: vscode-ext
-        run: npm ci
+        run: |
+          # If you use pnpm, replace this block with pnpm install --frozen-lockfile
+          if [ -f package-lock.json ] ; then
+            npm ci
+          else
+            echo "package-lock.json not found in vscode-ext, running 'npm install' as fallback"
+            npm install
+          fi
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
