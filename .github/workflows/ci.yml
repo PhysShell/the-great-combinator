@@ -13,6 +13,10 @@ on:
   push:
     branches: [ main ]
 
+defaults:
+  run:
+    shell: bash
+
 permissions:
   contents: read
 
@@ -112,6 +116,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install cross toolchain for aarch64 (Ubuntu)
+        if: contains(env.TARGET_TRIPLE, 'aarch64-unknown-linux-gnu') && matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Installing cross toolchain for aarch64"
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross
+          echo "Setting cargo linker env vars"
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -139,17 +153,42 @@ jobs:
       - name: Build Rust backend (process)
         if: env.BACKEND_MODE == 'process'
         run: |
+          set -euxo pipefail
+      
+          # Собираем все бинарные цели под конкретный таргет
           if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
-            cargo build --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target $TARGET_TRIPLE
-            BUILD_BIN="$PWD/$RUST_WORKSPACE_MEMBER/target/$TARGET_TRIPLE/release/${APP_NAME}"
+            cargo build --locked --manifest-path "$RUST_WORKSPACE_MEMBER/Cargo.toml" --release --target "$TARGET_TRIPLE" --bins
+            TARGET_DIR="$RUST_WORKSPACE_MEMBER/target/$TARGET_TRIPLE/release"
           else
-            cargo build -p $RUST_WORKSPACE_MEMBER --release --target $TARGET_TRIPLE
-            BUILD_BIN="$PWD/target/$TARGET_TRIPLE/release/${APP_NAME}"
+            cargo build --locked -p "$RUST_WORKSPACE_MEMBER" --release --target "$TARGET_TRIPLE" --bins
+            TARGET_DIR="target/$TARGET_TRIPLE/release"
           fi
-          mkdir -p dist/bin/${{ runner.os }}-${{ matrix.arch }}
-          BIN="$BUILD_BIN"
-          if [ "${{ runner.os }}" = "Windows" ]; then BIN="${BIN}.exe"; fi
-          cp "$BIN" "dist/bin/${{ runner.os }}-${{ matrix.arch }}/"
+      
+          mkdir -p "dist/bin/${{ runner.os }}-${{ matrix.arch }}"
+          shopt -s nullglob
+          copied=0
+      
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            for f in "$TARGET_DIR"/*.exe; do
+              cp "$f" "dist/bin/${{ runner.os }}-${{ matrix.arch }}/"
+              copied=$((copied+1))
+            done
+          else
+            # берём только исполняемые файлы (исключая *.d, *.rlib и т.п.)
+            for f in "$TARGET_DIR"/*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then
+                cp "$f" "dist/bin/${{ runner.os }}-${{ matrix.arch }}/"
+                copied=$((copied+1))
+              fi
+            done
+          fi
+  
+          if [ "$copied" -eq 0 ]; then
+            echo "::error::No executables were found in $TARGET_DIR"
+            echo "Contents of $TARGET_DIR:"
+            ls -la "$TARGET_DIR" || true
+            exit 1
+          fi
 
       - name: Build native addon via napi-rs (napi)
         if: env.BACKEND_MODE == 'napi'
@@ -166,10 +205,10 @@ jobs:
         run: |
           rustup target add wasm32-wasi || true
           if [ -f "$RUST_WORKSPACE_MEMBER/Cargo.toml" ]; then
-            cargo build --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target wasm32-wasi
+            cargo build --locked --manifest-path $RUST_WORKSPACE_MEMBER/Cargo.toml --release --target wasm32-wasi
             cp $RUST_WORKSPACE_MEMBER/target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
           else
-            cargo build -p $RUST_WORKSPACE_MEMBER --release --target wasm32-wasi
+            cargo build --locked -p $RUST_WORKSPACE_MEMBER --release --target wasm32-wasi
             cp target/wasm32-wasi/release/${APP_NAME}.wasm dist/web/ || true
           fi
 
