@@ -103,6 +103,9 @@ jobs:
           - os: macos-latest
             arch: arm64
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     env:
       TARGET_TRIPLE: ${{ (matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64') && 'aarch64-unknown-linux-gnu' || (matrix.os == 'ubuntu-latest' && matrix.arch == 'x64') && 'x86_64-unknown-linux-gnu' || (matrix.os == 'macos-latest' && matrix.arch == 'arm64') && 'aarch64-apple-darwin' || (matrix.os == 'macos-latest' && matrix.arch == 'x64') && 'x86_64-apple-darwin' || (matrix.os == 'windows-latest' && matrix.arch == 'x64') && 'x86_64-pc-windows-msvc' || 'x86_64-pc-windows-msvc' }}
 
